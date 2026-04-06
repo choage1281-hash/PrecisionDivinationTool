@@ -2,26 +2,79 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>🔮 精準占卜工具 V1-12 (網頁版)</title>
+<!-- 為行動裝置設定 viewport，確保畫面在手機上不會超出螢幕 -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🔮 精準占卜工具 V1-13 (網頁版)</title>
 <style>
-    /* 保留原有樣式 */
-    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; background-color: #f7f7f7; color: #333; }
+    /* 保留原有樣式，加入 mobile-friendly 設定 */
+    body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        padding: 20px;
+        background-color: #f7f7f7;
+        color: #333;
+        max-width: 100%; /* 不超出螢幕寬度 */
+        box-sizing: border-box;
+        margin: 0 auto;
+    }
     h1 { color: #6226d4; text-align: center; }
-    .keywords { max-height: 200px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc; margin-bottom: 20px; }
+    .keywords {
+        max-height: 200px;
+        overflow-y: auto;
+        background: #fff;
+        padding: 10px;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+        max-width: 100%;
+    }
     .question { margin-bottom: 10px; }
     .controls { margin-bottom: 15px; }
     .result { font-size: 1.4em; margin-top: 10px; font-weight: bold; }
-    .history { max-height: 200px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc; margin-top: 15px; white-space: pre-wrap; }
+    .history {
+        max-height: 200px;
+        overflow-y: auto;
+        background: #fff;
+        padding: 10px;
+        border: 1px solid #ccc;
+        margin-top: 15px;
+        white-space: pre-wrap;
+        max-width: 100%;
+    }
     label { display: inline-block; margin-right: 10px; }
-    .voice-controls { display: flex; flex-direction: row; align-items: center; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+    .voice-controls {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        margin-top: 5px;
+        flex-wrap: wrap;
+    }
     .keyword-add { margin-top: 10px; }
-    input[type="text"] { width: 60%; padding: 5px; margin-right: 5px; }
+    input[type="text"] {
+        width: 60%;
+        padding: 5px;
+        margin-right: 5px;
+    }
     input[type="range"] { vertical-align: middle; }
-    button { padding: 8px 12px; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    button {
+        padding: 8px 12px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+    }
     button:hover { background-color: #45a049; }
     @media (max-width: 600px) {
-        input[type="text"] { width: 100%; margin-right: 0; margin-top: 5px; }
-        .voice-controls { flex-direction: column; align-items: flex-start; }
+        input[type="text"] {
+            width: 100%;
+            margin-right: 0;
+            margin-top: 5px;
+        }
+        .voice-controls {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
     /* 新增關鍵字按鈕樣式 */
     .keyword-btn {
@@ -46,7 +99,7 @@
 </style>
 </head>
 <body>
-<h1>🔮 精準占卜工具 V1-12 (網頁版)</h1>
+<h1>🔮 精準占卜工具 V1-13 (網頁版)</h1>
 
 <div class="keywords">
   <p><strong>正向關鍵字：</strong><span id="goodKeywords"></span></p>
@@ -192,33 +245,43 @@
         return (goodHits - badHits) / total;
     }
 
-    // 根據比例隨機選擇一個最終運勢，使得不論輸入關鍵字類型都可能得到正或負評級
+    // 根據 ratio 使用常態分佈來選擇運勢，確保機率呈現鐘形曲線
     function generateFortune(ratio) {
-        // 當沒有命中任何關鍵字，返回空字串讓外層判斷
         if (ratio === null) {
             return '';
         }
-        // 將 ratio 正規化為 0~1 之間，ratioNormalized 越大越偏正面
+        // 將 ratio 轉換為 0~1 區間的正規化值，ratioNormalized 越大表示越偏正面
         const ratioNormalized = (ratio + 1) / 2;
-        // 設定正向評級的基本機率，保留 25%~75% 範圍，避免正或負完全無機會
-        const positiveProbability = 0.25 + 0.5 * ratioNormalized;
-        const rnd = Math.random();
-        // 定義對應的帶表情符號的完整列表
-        const positiveCategories = ['🟢 大吉','🟢 吉','🟡 中吉','🟡 小吉','🟡 半吉','🟡 末吉','🟡 末小吉'];
-        const negativeCategories = ['🟠 凶','🔸 小凶','🔸 半凶','🔴 末凶','🔴 大凶'];
-        let finalCategory;
-        if (rnd < positiveProbability) {
-            // 選擇正向運勢，根據 ratioNormalized 調整級別：越偏向正面，結果越佳
-            const idx = Math.min(positiveCategories.length - 1,
-                Math.floor((1 - ratioNormalized) * positiveCategories.length));
-            finalCategory = positiveCategories[idx];
-        } else {
-            // 選擇負向運勢，根據 ratioNormalized 調整級別：ratioNormalized 越小，結果越差
-            const idxNeg = Math.min(negativeCategories.length - 1,
-                Math.floor((1 - ratioNormalized) * negativeCategories.length));
-            finalCategory = negativeCategories[idxNeg];
+        // 定義完整運勢列表及其包含表情符號
+        const categories = ['🟢 大吉','🟢 吉','🟡 中吉','🟡 小吉','🟡 半吉','🟡 末吉','🟡 末小吉','🟠 凶','🔸 小凶','🔸 半凶','🔴 末凶','🔴 大凶'];
+        const n = categories.length;
+        // 動態調整平均值：ratioNormalized 越大，平均值越靠近索引 0；越小越靠近索引 n-1
+        const mean = (n - 1) * (1 - ratioNormalized);
+        const sigma = n / 4; // 選擇標準差使分佈較平滑
+        const weights = [];
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+            const exponent = -Math.pow(i - mean, 2) / (2 * sigma * sigma);
+            const w = Math.exp(exponent);
+            weights.push(w);
+            sum += w;
         }
-        return finalCategory;
+        // 計算累積機率分佈
+        const cumulative = [];
+        let acc = 0;
+        for (let i = 0; i < n; i++) {
+            acc += weights[i] / sum;
+            cumulative.push(acc);
+        }
+        const r = Math.random();
+        let selectedIndex = 0;
+        for (let i = 0; i < n; i++) {
+            if (r <= cumulative[i]) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        return categories[selectedIndex];
     }
 
     // 處理問卜按鈕
@@ -229,7 +292,7 @@
             return;
         }
         const ratio = calculateRatio(question);
-        // 如果未命中關鍵字，直接提醒用戶
+        // 如果未命中任何關鍵字，直接提醒用戶
         if (ratio === null) {
             document.getElementById('result').textContent = '占卜結果：🤔 問題未命中任何關鍵字，請再具體一點';
             return;
