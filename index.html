@@ -2,8 +2,9 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>🔮 精準占卜工具 V1-10 (網頁版)</title>
+<title>🔮 精準占卜工具 V1-12 (網頁版)</title>
 <style>
+    /* 保留原有樣式 */
     body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; background-color: #f7f7f7; color: #333; }
     h1 { color: #6226d4; text-align: center; }
     .keywords { max-height: 200px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc; margin-bottom: 20px; }
@@ -22,10 +23,30 @@
         input[type="text"] { width: 100%; margin-right: 0; margin-top: 5px; }
         .voice-controls { flex-direction: column; align-items: flex-start; }
     }
+    /* 新增關鍵字按鈕樣式 */
+    .keyword-btn {
+        margin: 2px;
+        padding: 4px 8px;
+        background-color: #e8e8e8;
+        color: #333;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+    .keyword-btn:hover {
+        background-color: #d3d3d3;
+    }
+    /* 參考指標樣式 */
+    .reference {
+        font-size: 0.9em;
+        color: #555;
+        margin-top: 5px;
+    }
 </style>
 </head>
 <body>
-<h1>🔮 精準占卜工具 V1-10 (網頁版)</h1>
+<h1>🔮 精準占卜工具 V1-12 (網頁版)</h1>
 
 <div class="keywords">
   <p><strong>正向關鍵字：</strong><span id="goodKeywords"></span></p>
@@ -46,6 +67,8 @@
 <div class="question">
   <label for="questionInput">請輸入你的問題：</label>
   <input type="text" id="questionInput" placeholder="我今天會發財嗎？">
+  <!-- 新增清除輸入按鈕 -->
+  <button type="button" onclick="clearQuestion()">清除輸入</button>
 </div>
 
 <div class="voice-controls">
@@ -61,6 +84,8 @@
 
 <h3>📜 占卜歷史</h3>
 <div id="history" class="history"></div>
+<!-- 新增清除歷史按鈕 -->
+<button type="button" onclick="clearHistory()">清除歷史</button>
 
 <script>
     // 基本關鍵字列表（與 Python 腳本一致）
@@ -89,12 +114,22 @@
     const customGoodKeywords = [];
     const customBadKeywords = [];
 
+    // 占卜可能性列表（不含表情符號，供參考）
+    const allFortunes = ['大吉','吉','中吉','小吉','半吉','末吉','末小吉','凶','小凶','半凶','末凶','大凶'];
+
     // 更新畫面上的關鍵字列表
     function updateKeywords() {
         const allGood = goodKeywords.concat(customGoodKeywords);
         const allBad = badKeywords.concat(customBadKeywords);
-        document.getElementById('goodKeywords').textContent = allGood.join(', ');
-        document.getElementById('badKeywords').textContent = allBad.join(', ');
+        // 將每個關鍵字渲染為可點擊的按鈕，點擊後會插入到問題輸入框中
+        const goodHtml = allGood.map(kw => {
+            return `<button type="button" class="keyword-btn" onclick="insertKeyword('${kw}')">${kw}</button>`;
+        }).join('');
+        const badHtml = allBad.map(kw => {
+            return `<button type="button" class="keyword-btn" onclick="insertKeyword('${kw}')">${kw}</button>`;
+        }).join('');
+        document.getElementById('goodKeywords').innerHTML = goodHtml;
+        document.getElementById('badKeywords').innerHTML = badHtml;
     }
 
     // 新增正向關鍵字
@@ -119,8 +154,21 @@
         }
     }
 
-    // 根據問題預測運勢
-    function predictFortune(question) {
+    // 將關鍵字插入問題輸入框
+    function insertKeyword(kw) {
+        const input = document.getElementById('questionInput');
+        // 如果輸入框是空的，直接設置關鍵字；否則在後方加入一個空格後再接關鍵字
+        if (input.value.trim() === '') {
+            input.value = kw;
+        } else {
+            input.value += ' ' + kw;
+        }
+        // 將焦點移到輸入框，方便繼續輸入
+        input.focus();
+    }
+
+    // 計算正負關鍵字命中比率，回傳 ratio 值（-1~1 之間）
+    function calculateRatio(question) {
         const lowerQ = question.toLowerCase();
         const allGood = goodKeywords.concat(customGoodKeywords);
         const allBad = badKeywords.concat(customBadKeywords);
@@ -138,45 +186,39 @@
         });
         const total = goodHits + badHits;
         if (total === 0) {
-            return '🤔 問題未命中任何關鍵字，請再具體一點';
+            return null;
         }
-        const ratio = (goodHits - badHits) / total;
-        // 正向評級
-        if (ratio >= 0.9 && goodHits >= 4) {
-            return '🟢 大吉';
-        } else if (ratio >= 0.7 && goodHits >= 3) {
-            return '🟢 吉';
-        } else if (ratio >= 0.5 && goodHits >= 2) {
-            return '🟡 中吉';
-        } else if (ratio >= 0.3 && goodHits >= 2) {
-            return '🟡 小吉';
-        } else if (ratio >= 0.15 && goodHits >= 1) {
-            return '🟡 半吉';
-        } else if (ratio >= 0.05 && goodHits >= 1) {
-            return '🟡 末吉';
-        } else if (ratio > 0 && goodHits >= 1) {
-            return '🟡 末小吉';
+        // ratio 為正表示偏向正面，為負表示偏向負面
+        return (goodHits - badHits) / total;
+    }
+
+    // 根據比例隨機選擇一個最終運勢，使得不論輸入關鍵字類型都可能得到正或負評級
+    function generateFortune(ratio) {
+        // 當沒有命中任何關鍵字，返回空字串讓外層判斷
+        if (ratio === null) {
+            return '';
         }
-        // 負向評級
-        // 依負向程度分級（含「凶」分類）
-        if (ratio <= -0.5 && badHits >= 3) {
-            // 極度負面且命中較多關鍵字
-            return '🔴 大凶';
-        } else if (ratio <= -0.3 && badHits >= 2) {
-            // 非常負面
-            return '🔴 末凶';
-        } else if (ratio <= -0.15 && badHits >= 2) {
-            // 負面傾向
-            return '🔸 半凶';
-        } else if (ratio <= -0.05 && badHits >= 1) {
-            // 略帶負面
-            return '🔸 小凶';
-        } else if (ratio < 0 && badHits >= 1) {
-            // 略為不利，但未達小凶標準
-            return '🟠 凶';
+        // 將 ratio 正規化為 0~1 之間，ratioNormalized 越大越偏正面
+        const ratioNormalized = (ratio + 1) / 2;
+        // 設定正向評級的基本機率，保留 25%~75% 範圍，避免正或負完全無機會
+        const positiveProbability = 0.25 + 0.5 * ratioNormalized;
+        const rnd = Math.random();
+        // 定義對應的帶表情符號的完整列表
+        const positiveCategories = ['🟢 大吉','🟢 吉','🟡 中吉','🟡 小吉','🟡 半吉','🟡 末吉','🟡 末小吉'];
+        const negativeCategories = ['🟠 凶','🔸 小凶','🔸 半凶','🔴 末凶','🔴 大凶'];
+        let finalCategory;
+        if (rnd < positiveProbability) {
+            // 選擇正向運勢，根據 ratioNormalized 調整級別：越偏向正面，結果越佳
+            const idx = Math.min(positiveCategories.length - 1,
+                Math.floor((1 - ratioNormalized) * positiveCategories.length));
+            finalCategory = positiveCategories[idx];
+        } else {
+            // 選擇負向運勢，根據 ratioNormalized 調整級別：ratioNormalized 越小，結果越差
+            const idxNeg = Math.min(negativeCategories.length - 1,
+                Math.floor((1 - ratioNormalized) * negativeCategories.length));
+            finalCategory = negativeCategories[idxNeg];
         }
-        // 未能明顯歸類時
-        return '⚖️ 情勢混合，需多方考量';
+        return finalCategory;
     }
 
     // 處理問卜按鈕
@@ -186,23 +228,42 @@
             document.getElementById('result').textContent = '占卜結果：請先輸入問題';
             return;
         }
-        const result = predictFortune(question);
-        document.getElementById('result').textContent = '占卜結果： ' + result;
-        // 如果啟用語音且瀏覽器支援 speechSynthesis
+        const ratio = calculateRatio(question);
+        // 如果未命中關鍵字，直接提醒用戶
+        if (ratio === null) {
+            document.getElementById('result').textContent = '占卜結果：🤔 問題未命中任何關鍵字，請再具體一點';
+            return;
+        }
+        const fortune = generateFortune(ratio);
+        // 顯示占卜結果和參考指標
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '占卜結果： ' + fortune +
+            '<div class="reference">參考：' + allFortunes.join('、') + '</div>';
+        // 如果啟用語音且瀏覽器支援 speechSynthesis，只朗讀主要結果
         if (document.getElementById('voiceToggle').checked && 'speechSynthesis' in window) {
-            // 移除表情符號以免語音朗讀時出現停頓
-            const plainText = result.replace(/[🟢🟡🟠🔸🔴]/g, '');
+            const plainText = fortune.replace(/[🟢🟡🟠🔸🔴]/g, '');
             const utter = new SpeechSynthesisUtterance('占卜結果：' + plainText);
             utter.rate = parseFloat(document.getElementById('speedRange').value);
             utter.volume = parseFloat(document.getElementById('volumeRange').value);
             speechSynthesis.speak(utter);
         }
-        // 將問題與結果加入歷史紀錄
+        // 將問題與結果加入歷史紀錄（不包含參考指標）
         const historyDiv = document.getElementById('history');
         const entry = document.createElement('div');
-        entry.textContent = '📝 問題：' + question + '\n🔮 結果：' + result + '\n';
+        entry.textContent = '📝 問題：' + question + '\n🔮 結果：' + fortune + '\n';
         historyDiv.appendChild(entry);
         historyDiv.scrollTop = historyDiv.scrollHeight;
+    }
+
+    // 清除問題輸入框
+    function clearQuestion() {
+        document.getElementById('questionInput').value = '';
+    }
+
+    // 清除歷史紀錄
+    function clearHistory() {
+        const historyDiv = document.getElementById('history');
+        historyDiv.innerHTML = '';
     }
 
     // 初始化關鍵字顯示
