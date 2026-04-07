@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- 為行動裝置設定 viewport，確保畫面在手機上不會超出螢幕 -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🔮 精準占卜工具 V1-14 (網頁版)</title>
+<title>🔮 精準占卜工具 V1-15 (網頁版)</title>
 <style>
     /* 保留原有樣式，加入 mobile-friendly 設定 */
     body {
@@ -99,7 +99,7 @@
 </style>
 </head>
 <body>
-<h1>🔮 精準占卜工具 V1-14 (網頁版)</h1>
+    <h1>🔮 精準占卜工具 V1-15 (網頁版)</h1>
 
 <div class="keywords">
   <p><strong>正向關鍵字：</strong><span id="goodKeywords"></span></p>
@@ -246,11 +246,9 @@
     }
 
     // 根據常態分佈來選擇運勢，確保機率呈現鐘形曲線
-    // 本版本 V1-14 取消了正負關鍵字對平均值的偏移，使每個結果只受到隨機因素影響
+    // 本版本 V1-15 取消了正負關鍵字對平均值的偏移，並允許無關鍵字輸入時依然生成結果
     function generateFortune(ratio) {
-        if (ratio === null) {
-            return '';
-        }
+        // ratio 參數僅保留為相容性使用，當其為 null 仍然產生隨機運勢
         // 定義完整運勢列表及其包含表情符號
         const categories = ['🟢 大吉','🟢 吉','🟡 中吉','🟡 小吉','🟡 半吉','🟡 末吉','🟡 末小吉','🟠 凶','🔸 小凶','🔸 半凶','🔴 末凶','🔴 大凶'];
         const n = categories.length;
@@ -291,11 +289,7 @@
             return;
         }
         const ratio = calculateRatio(question);
-        // 如果未命中任何關鍵字，直接提醒用戶
-        if (ratio === null) {
-            document.getElementById('result').textContent = '占卜結果：🤔 問題未命中任何關鍵字，請再具體一點';
-            return;
-        }
+        // 無論是否命中正向或負向關鍵字，只要有輸入內容都產生占卜結果。
         const fortune = generateFortune(ratio);
         // 顯示占卜結果和參考指標
         const resultDiv = document.getElementById('result');
