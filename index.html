@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- 為行動裝置設定 viewport，確保畫面在手機上不會超出螢幕 -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🔮 精準占卜工具 V1-13 (網頁版)</title>
+<title>🔮 精準占卜工具 V1-14 (網頁版)</title>
 <style>
     /* 保留原有樣式，加入 mobile-friendly 設定 */
     body {
@@ -99,7 +99,7 @@
 </style>
 </head>
 <body>
-<h1>🔮 精準占卜工具 V1-13 (網頁版)</h1>
+<h1>🔮 精準占卜工具 V1-14 (網頁版)</h1>
 
 <div class="keywords">
   <p><strong>正向關鍵字：</strong><span id="goodKeywords"></span></p>
@@ -245,18 +245,17 @@
         return (goodHits - badHits) / total;
     }
 
-    // 根據 ratio 使用常態分佈來選擇運勢，確保機率呈現鐘形曲線
+    // 根據常態分佈來選擇運勢，確保機率呈現鐘形曲線
+    // 本版本 V1-14 取消了正負關鍵字對平均值的偏移，使每個結果只受到隨機因素影響
     function generateFortune(ratio) {
         if (ratio === null) {
             return '';
         }
-        // 將 ratio 轉換為 0~1 區間的正規化值，ratioNormalized 越大表示越偏正面
-        const ratioNormalized = (ratio + 1) / 2;
         // 定義完整運勢列表及其包含表情符號
         const categories = ['🟢 大吉','🟢 吉','🟡 中吉','🟡 小吉','🟡 半吉','🟡 末吉','🟡 末小吉','🟠 凶','🔸 小凶','🔸 半凶','🔴 末凶','🔴 大凶'];
         const n = categories.length;
-        // 動態調整平均值：ratioNormalized 越大，平均值越靠近索引 0；越小越靠近索引 n-1
-        const mean = (n - 1) * (1 - ratioNormalized);
+        // 固定平均值在中央，不再根據正負關鍵字偏移。這樣正向或負向關鍵字皆不直接影響結果
+        const mean = (n - 1) / 2;
         const sigma = n / 4; // 選擇標準差使分佈較平滑
         const weights = [];
         let sum = 0;
